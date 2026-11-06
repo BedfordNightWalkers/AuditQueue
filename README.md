@@ -97,6 +97,37 @@ flowchart TB
 
 The API and background processor are separate deployable components, allowing each to scale independently.
 
+
+## Architecture Diagrams
+
+The following diagrams illustrate the key architectural components and processing flows.
+
+### 1. Architecture Overview
+
+High-level view of the API, transactional database, message queue, background processor and Cosmos DB.
+
+![Architecture Overview](docs/architecture/architecture-overview.mmd)
+
+[View Architecture Overview](docs/architecture/architecture-overview.mmd)
+
+### 2. Audit Event Lifecycle
+
+End-to-end sequence showing the Transactional Outbox pattern, asynchronous queue publishing and audit persistence.
+
+[View Audit Event Lifecycle](docs/architecture/audit-event-lifecycle.mmd)
+
+### 3. Retry and Dead-Letter Queue Handling
+
+Illustrates message validation, idempotency, retries, visibility timeout and poison message recovery.
+
+[View Retry and DLQ Handling](docs/architecture/retry-and-dlq-handling.mmd)
+
+### 4. Multi-Tenant Data Architecture
+
+Shows Auth0 identity, tenant resolution, underwriter-specific Cosmos DB containers and partitioning strategy.
+
+[View Multi-Tenant Architecture](docs/architecture/multi-tenant-data-architecture.mmd)
+
 ## 3. Solution Structure
 
 The solution is organised into separate projects with clear responsibilities.
@@ -749,4 +780,3 @@ GitHub: https://github.com/BedfordNightWalkers/AuditQueue
 **Project:** AuditQueue
 
 **Purpose:** Demonstrate a scalable, resilient and multi-tenant distributed audit logging architecture using .NET and Azure technologies.
-

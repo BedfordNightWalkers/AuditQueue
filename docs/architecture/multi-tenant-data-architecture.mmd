@@ -1,0 +1,62 @@
+
+flowchart TB
+    User["Postman / API Client"]
+    Auth0["Auth0"]
+
+    subgraph API["Audit.Api"]
+        JWT["JWT Validation"]
+        Claims["Extract ClaimsPrincipal"]
+        Scope["Validate Permissions"]
+        Tenant["Resolve Underwriter Identity"]
+        Policy["PolicyService"]
+    end
+
+    subgraph SQL["SQL Server - AuditQueue"]
+        Clients[("Clients Table")]
+        Policies[("Policies Table")]
+        Outbox[("OutboxMessages Table")]
+    end
+
+    Publisher["Outbox Publisher"]
+    Queue[["Azure Storage Queue"]]
+
+    subgraph Processor["Audit.Processor"]
+        Consumer["Queue Consumer"]
+        Resolver["ConfigurationTenantContainerResolver"]
+        Mapping["Trusted Tenant-to-Container Mapping"]
+    end
+
+    subgraph Cosmos["Cosmos DB - AuditPlatform"]
+        C1[("Underwriter 001")]
+        C2[("Underwriter 002")]
+        CN[("Underwriter N")]
+    end
+
+    User -->|"Access token"| JWT
+    Auth0 -->|"Signed JWT"| JWT
+    JWT --> Claims
+    Claims --> Scope
+    Scope --> Tenant
+    Tenant --> Policy
+
+    Policy --> Clients
+    Policy --> Policies
+    Policy --> Outbox
+
+    Outbox --> Publisher
+    Publisher --> Queue
+    Queue --> Consumer
+
+    Consumer --> Resolver
+    Resolver --> Mapping
+    Mapping -->|"Tenant 001"| C1
+    Mapping -->|"Tenant 002"| C2
+    Mapping -->|"Tenant N"| CN
+
+    subgraph Partition["Document Partitioning"]
+        Package["packageId = Partition Key"]
+        Event["EventId = Document ID"]
+    end
+
+    C1 -.-> Package
+    C2 -.-> Event

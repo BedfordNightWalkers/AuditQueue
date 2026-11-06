@@ -1,0 +1,41 @@
+
+flowchart TD
+    Start["Queue message received"]
+    Validate["Validate message"]
+    Duplicate{"Already processed?"}
+    Persist["Persist event to Cosmos DB"]
+    Success{"Persistence successful?"}
+    Delete["Delete original queue message"]
+    Retry["Increment delivery attempts"]
+    Limit{"Maximum attempts exceeded?"}
+    Backoff["Apply retry delay / visibility timeout"]
+    Poison["Move message to audit-events-poison"]
+    Inspect["Inspect poison message"]
+    Fix["Identify and fix root cause"]
+    Replay["Reprocess / replay message"]
+    Complete["Processing completed"]
+
+    Start --> Validate
+    Validate --> Duplicate
+
+    Duplicate -->|"Yes"| Delete
+    Duplicate -->|"No"| Persist
+
+    Persist --> Success
+    Success -->|"Yes"| Delete
+    Success -->|"No"| Retry
+
+    Validate -->|"Invalid payload"| Retry
+
+    Retry --> Limit
+    Limit -->|"No"| Backoff
+    Backoff --> Start
+
+    Limit -->|"Yes"| Poison
+
+    Poison --> Inspect
+    Inspect --> Fix
+    Fix --> Replay
+    Replay --> Start
+
+    Delete --> Complete

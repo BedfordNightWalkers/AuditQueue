@@ -1,0 +1,61 @@
+
+flowchart TB
+    Client["Client / Postman"]
+    Auth0["Auth0 Identity Provider"]
+
+    subgraph API["Audit.Api - ASP.NET Core Web API"]
+        JWT["JWT Bearer Authentication"]
+        AuthZ["Scope and Tenant Authorisation"]
+        Controller["PoliciesController"]
+        Service["PolicyService"]
+    end
+
+    subgraph SQL["SQL Server - AuditQueue"]
+        Policy[("Policies")]
+        Outbox[("OutboxMessages")]
+    end
+
+    Publisher["Outbox Publisher"]
+
+    subgraph Queue["Azure Storage Queue / Azurite"]
+        MainQueue[["audit-events"]]
+        PoisonQueue[["audit-events-poison"]]
+    end
+
+    subgraph Worker["Audit.Processor - .NET Worker Service"]
+        Consumer["Queue Consumer"]
+        Validator["Message Validation"]
+        Idempotency["Idempotency Check"]
+        Resolver["Tenant Container Resolver"]
+    end
+
+    subgraph Cosmos["Azure Cosmos DB"]
+        Database[("AuditPlatform")]
+        Tenant1[("Underwriter 001 Container")]
+        Tenant2[("Underwriter 002 Container")]
+        TenantN[("Underwriter N Container")]
+    end
+
+    Client -->|"Request + Bearer Token"| JWT
+    Auth0 -->|"JWT / Signing Keys"| JWT
+    JWT --> AuthZ
+    AuthZ --> Controller
+    Controller --> Service
+
+    Service -->|"Update policy"| Policy
+    Service -->|"Insert event in same transaction"| Outbox
+
+    Outbox --> Publisher
+    Publisher -->|"Publish event"| MainQueue
+
+    MainQueue --> Consumer
+    Consumer --> Validator
+    Validator --> Idempotency
+    Idempotency --> Resolver
+
+    Resolver --> Database
+    Database --> Tenant1
+    Database --> Tenant2
+    Database --> TenantN
+
+    Consumer -.->|"Repeated failures"| PoisonQueue

@@ -1,0 +1,48 @@
+
+sequenceDiagram
+    autonumber
+
+    actor Client
+    participant API as Audit.Api
+    participant SQL as SQL Server
+    participant Outbox as Outbox Publisher
+    participant Queue as Azure Storage Queue
+    participant Worker as Audit.Processor
+    participant Cosmos as Cosmos DB
+
+    Client->>API: POST /policies/{id}/status
+    API->>API: Validate JWT and authorisation
+
+    API->>SQL: Begin transaction
+    API->>SQL: Update policy
+    API->>SQL: Insert OutboxMessage (EventId)
+    SQL-->>API: Commit transaction
+
+    API-->>Client: Success response
+
+    Note over SQL,Outbox: Publisher retrieves unpublished outbox records
+
+    Outbox->>SQL: Read pending OutboxMessages
+    SQL-->>Outbox: Event payload + EventId
+
+    Outbox->>Queue: Send audit event
+    Queue-->>Outbox: Message accepted
+
+    Outbox->>SQL: Mark OutboxMessage as published
+
+    Worker->>Queue: Retrieve message
+    Queue-->>Worker: Audit event + EventId
+
+    Worker->>Worker: Validate and resolve tenant
+    Worker->>Cosmos: Persist document (ID = EventId)
+
+    alt New event
+        Cosmos-->>Worker: Persisted successfully
+    else Duplicate event
+        Cosmos-->>Worker: Existing document detected
+        Note over Worker,Cosmos: Treat duplicate as successfully processed
+    end
+
+    Worker->>Queue: Delete message after successful persistence
+
+    Note over Queue,Cosmos: Failed processing must not result in premature message deletion
