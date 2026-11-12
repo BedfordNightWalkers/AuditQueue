@@ -90,4 +90,21 @@ public sealed class OutboxRepositoryTests : IDisposable
 
         await Assert.ThrowsAsync<DbUpdateException>(() => _dbContext.SaveChangesAsync());
     }
+
+    [Fact]
+    public async Task RecordFailureAsync_IncrementsAttemptsAndStoresLastError()
+    {
+        await _sut.AddAsync("evt-123", "Policy.StatusChanged", "{}", CreatedAtUtc, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        var id = Assert.Single(_dbContext.ChangeTracker.Entries<OutboxMessage>()).Entity.Id;
+
+        await _sut.RecordFailureAsync(id, "first failure", CancellationToken.None);
+        await _sut.RecordFailureAsync(id, "second failure", CancellationToken.None);
+
+        await using var verifyContext = _database.CreateContext();
+        var message = Assert.Single(await verifyContext.OutboxMessages.ToListAsync());
+        Assert.Equal(2, message.Attempts);
+        Assert.Equal("second failure", message.LastError);
+        Assert.Null(message.PublishedAtUtc);
+    }
 }

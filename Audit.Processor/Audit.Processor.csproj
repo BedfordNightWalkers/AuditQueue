@@ -4,10 +4,15 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>dotnet-Audit.Processor-fe7115d7-8dde-4192-b8bf-e7b51cf60025</UserSecretsId>
+        <UserSecretsId>afb950f3-9ed2-497e-a5e1-0e9a83e041c8</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Audit.Application\Audit.Application.csproj" />
+      <ProjectReference Include="..\Audit.Infrastructure\Audit.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

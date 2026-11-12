@@ -19,7 +19,8 @@ public sealed class PoliciesController(IPolicyService service) : ControllerBase
     {
         var actorId = User.FindFirstValue(ClaimTypes.NameIdentifier)
                       ?? User.FindFirstValue("sub");
-        var clientId = User.FindFirstValue("client_id");
+        var clientId = User.FindFirstValue(
+            "https://localdev-queue-api/claims/tenant_id");
 
         if (string.IsNullOrWhiteSpace(actorId) ||
             string.IsNullOrWhiteSpace(clientId))
